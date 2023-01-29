@@ -8,6 +8,9 @@ import static io.restassured.RestAssured.*;
 
 import java.io.File;
 
+import org.apache.http.util.Asserts;
+import org.testng.Assert;
+
 
 public class jiraAPI {
 
@@ -18,7 +21,7 @@ public class jiraAPI {
 		
 		SessionFilter session=new SessionFilter();
 		//Login
-		given().header("Content-Type","application/json").body("{ \"username\": \"abhids788\", \"password\": \"Asd@1234\" }")
+		given().relaxedHTTPSValidation().header("Content-Type","application/json").body("{ \"username\": \"abhids791\", \"password\": \"Asd@1234\" }")
 		.log().all().filter(session).when().post("rest/auth/1/session").then().log().all().extract().response().asString();
 		
 		//Create Issue
@@ -42,24 +45,36 @@ public class jiraAPI {
 		JsonPath js=new JsonPath(response);
 		String KeyValue=js.getString("key");
 		
+		System.out.println("Create Issue Create Issue Create Issue Create Issue Create Issue");
+		
 		//Add Comment
 		String AddCommentResponse=given().log().all().pathParam("key", KeyValue).header("Content-Type","application/json")
 		.body("{\r\n"
-				+ "    \"body\": \"This is Test Comment\",\r\n"
+				+ "    \"body\": \"This is 1st Test Comment\",\r\n"
 				+ "    \"visibility\": {\r\n"
 				+ "        \"type\": \"role\",\r\n"
 				+ "        \"value\": \"Administrators\"\r\n"
 				+ "    }\r\n"
 				+ "}").filter(session).when().post("rest/api/2/issue/{key}/comment").then().log().all().assertThat().statusCode(201).extract().response().asString();
 		
-		JsonPath jsAddComment=new JsonPath(AddCommentResponse);
+		String AddCommentResponse2=given().log().all().pathParam("key", KeyValue).header("Content-Type","application/json")
+				.body("{\r\n"
+						+ "    \"body\": \"This is 2nd Test Comment\",\r\n"
+						+ "    \"visibility\": {\r\n"
+						+ "        \"type\": \"role\",\r\n"
+						+ "        \"value\": \"Administrators\"\r\n"
+						+ "    }\r\n"
+						+ "}").filter(session).when().post("rest/api/2/issue/{key}/comment").then().log().all().assertThat().statusCode(201).extract().response().asString();
+				
+		JsonPath jsAddComment=new JsonPath(AddCommentResponse2);
 	
 		
 		
 		//Update Comment
+		String UpdateComment="wUpdated Comment from RestAssured API";
 		given().log().all().header("Content-Type", "application/json")
 		.body("{\r\n"
-				+ "    \"body\": \"Updated Comment from RestAssured API\",\r\n"
+				+ "    \"body\": \""+UpdateComment+"\",\r\n"
 				+ "    \"visibility\": {\r\n"
 				+ "        \"type\": \"role\",\r\n"
 				+ "        \"value\": \"Administrators\"\r\n"
@@ -73,7 +88,29 @@ public class jiraAPI {
 		.filter(session).when().post("rest/api/2/issue/"+js.getString("id")+"/attachments").then().log().all();
 		
 		
-		//Delete ticket
+		//Get Issue
+		String getIssueDetails=given().log().all().filter(session).queryParam("fields", "comment").queryParam("fields", "created").pathParam("key", KeyValue).when().get("rest/api/2/issue/{key}").then().log().all().extract().response().asString();
+		JsonPath getIssueResponse=new JsonPath(getIssueDetails);
+		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		
+		System.out.println(getIssueResponse.getString("fields.comment.comments.size()"));
+		System.out.println(getIssueResponse.getString("fields.comment.comments.created"));
+		
+		int commentSize=getIssueResponse.getInt("fields.comment.comments.size()");
+		
+		for(int i=0; i<commentSize;i++) {
+			System.out.println(getIssueResponse.getString("fields.comment.comments["+i+"].id"));
+			
+			if(getIssueResponse.getString("fields.comment.comments["+i+"].id").equals(jsAddComment.getString("id"))) {
+				String message=getIssueResponse.getString("fields.comment.comments["+i+"].body");
+				Assert.assertEquals(message, UpdateComment);
+				System.out.println(message);
+			}
+			
+		}
+				
+		
+		//Delete Issue
 		System.out.println("Delete ticketDelete ticketDelete ticketDelete ticket");
 		/*
 		 * given().log().all().filter(session)
