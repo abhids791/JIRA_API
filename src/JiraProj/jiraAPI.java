@@ -108,6 +108,8 @@ public class jiraAPI {
 			}
 			
 		}
+		
+		System.out.println("New implement");
 				
 		
 		//Delete Issue
